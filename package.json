@@ -38,7 +38,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kirpyv3/mcp-server"
+    "url": "https://github.com/gnyselcuk/Kirpyv3-mcp-server.git"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
