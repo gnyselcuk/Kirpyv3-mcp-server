@@ -11,7 +11,7 @@ export async function handleGetPortfolio(apiKey: string): Promise<ToolResponse> 
     try {
         const client = new BackendAPIClient(apiKey);
         const data = await client.getPortfolio() as PortfolioData;
-        
+
         return {
             content: [{
                 type: "text",
@@ -35,14 +35,14 @@ export async function handleGetPositions(apiKey: string, args: PositionsArgs): P
     try {
         const status = args.status || "open";
         const client = new BackendAPIClient(apiKey);
-        
+
         let data: PositionsResponse;
         if (status === "open") {
             data = await client.getOpenPositions() as PositionsResponse;
         } else {
             data = await client.getPositionHistory() as PositionsResponse;
         }
-        
+
         return {
             content: [{
                 type: "text",
@@ -66,14 +66,14 @@ export async function handleGetTradeHistory(apiKey: string, args: TradeHistoryAr
     try {
         const limit = args.limit || 10;
         Validators.validateLimit(limit);
-        
+
         if (args.symbol) {
             Validators.validateSymbol(args.symbol);
         }
 
         const client = new BackendAPIClient(apiKey);
         const data = await client.getTradeHistory(limit, args.symbol) as TradeHistoryResponse;
-        
+
         return {
             content: [{
                 type: "text",
@@ -90,7 +90,7 @@ export async function handleGetAlerts(apiKey: string, args: AlertsArgs): Promise
         const status = args.status || "active";
         const client = new BackendAPIClient(apiKey);
         const data = await client.getAlerts(status) as AlertsResponse;
-        
+
         return {
             content: [{
                 type: "text",
@@ -116,11 +116,73 @@ export async function handleChatWithBot(apiKey: string, args: ChatArgs): Promise
 
         const client = new BackendAPIClient(apiKey);
         const data = await client.chatWithBot(args.message) as ChatResponse;
-        
+
         return {
             content: [{
                 type: "text",
                 text: ResponseFormatter.chatResponse(data.response, data.context)
+            }]
+        };
+    } catch (error) {
+        return handleToolError(error);
+    }
+}
+
+export async function handleGetAgentActivity(apiKey: string): Promise<ToolResponse> {
+    try {
+        const client = new BackendAPIClient(apiKey);
+        const data = await client.getAgentActivity() as {
+            agent_name: string;
+            period: string;
+            total: number;
+            summary: {
+                arena_posts: number;
+                positions_opened: number;
+                positions_closed: number;
+                alerts_triggered: number;
+            };
+            activities: Array<{
+                type: string;
+                icon: string;
+                timestamp: string;
+                summary: string;
+                detail: string;
+            }>;
+        };
+
+        if (!data.total) {
+            return {
+                content: [{
+                    type: "text",
+                    text: `🔇 No activity in the last 24 hours for ${data.agent_name}.`
+                }]
+            };
+        }
+
+        const { summary, activities, agent_name } = data;
+
+        const header = [
+            `📋 Last 24h Activity — ${agent_name}`,
+            `${'━'.repeat(50)}`,
+            `💬 Arena Posts: ${summary.arena_posts}  |  📈 Opened: ${summary.positions_opened}  |  ✅ Closed: ${summary.positions_closed}  |  🔔 Alerts: ${summary.alerts_triggered}`,
+            `${'━'.repeat(50)}`,
+        ].join('\n');
+
+        const lines = activities.map((a, i) => {
+            const ts = a.timestamp ? new Date(a.timestamp).toLocaleString('tr-TR', {
+                timeZone: 'Europe/Istanbul',
+                hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short'
+            }) : 'N/A';
+            return [
+                `${a.icon} [${ts}] ${a.summary}`,
+                `   └─ ${a.detail}`
+            ].join('\n');
+        });
+
+        return {
+            content: [{
+                type: "text",
+                text: `${header}\n\n${lines.join('\n\n')}`
             }]
         };
     } catch (error) {

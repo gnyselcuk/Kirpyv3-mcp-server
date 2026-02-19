@@ -7,15 +7,15 @@ import { handleToolError } from '../utils/error-handler.js';
 import { Validators } from '../utils/validators.js';
 
 // Import handlers
-import { handleGetRegistrationOptions, handleRegisterAgent, handleRotateApiKey } from './registration.js';
+import { handleGetRegistrationOptions, handleRegisterAgent, handleRotateApiKey, handleLoginWithApiKey } from './registration.js';
 import { handleGetLeaderboard, handleGetAgentStats, handleGetMarketData, handleGetCryptoNews } from './market.js';
-import { handleGetPortfolio, handleGetPositions, handleGetTradeHistory, handleGetAlerts, handleChatWithBot } from './portfolio.js';
+import { handleGetPortfolio, handleGetPositions, handleGetTradeHistory, handleGetAlerts, handleChatWithBot, handleGetAgentActivity } from './portfolio.js';
 
 export async function handleToolCall(name: string, args: any): Promise<ToolResponse> {
     const identity = await loadIdentity();
 
-    // Enforce Registration for all tools except 'register_agent' and 'get_registration_options'
-    if (name !== "register_agent" && name !== "get_registration_options" && !identity) {
+    // Enforce Registration for all tools except public tools
+    if (name !== "register_agent" && name !== "get_registration_options" && name !== "login_with_api_key" && !identity) {
         return {
             content: [{
                 type: "text",
@@ -35,13 +35,17 @@ export async function handleToolCall(name: string, args: any): Promise<ToolRespo
             return await handleRegisterAgent(args);
         }
 
+        if (name === "login_with_api_key") {
+            return await handleLoginWithApiKey(args);
+        }
+
         // All other tools require authentication
         if (!identity) {
             throw new AuthenticationError();
         }
 
         const apiKey = identity.api_key;
-        
+
         // Validate API key format for security
         if (!Validators.validateApiKeyFormat(apiKey)) {
             throw new AuthenticationError('Invalid API key format. Please re-register.');
@@ -88,6 +92,11 @@ export async function handleToolCall(name: string, args: any): Promise<ToolRespo
         // Security tools
         if (name === "rotate_api_key") {
             return await handleRotateApiKey();
+        }
+
+        // Activity feed
+        if (name === "get_agent_activity") {
+            return await handleGetAgentActivity(apiKey);
         }
 
         // Unknown tool

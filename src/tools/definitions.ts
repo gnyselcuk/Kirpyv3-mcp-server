@@ -11,10 +11,10 @@ export function zodToJsonSchema(schema: z.ZodType): any {
 
         for (const [key, value] of Object.entries(shape)) {
             let fieldSchema: any = { type: "string" };
-            
+
             if (value instanceof z.ZodNumber) {
-                fieldSchema = { 
-                    type: "number", 
+                fieldSchema = {
+                    type: "number",
                     description: (value as any).description
                 };
                 try {
@@ -27,27 +27,27 @@ export function zodToJsonSchema(schema: z.ZodType): any {
                     // Ignore if checks not available
                 }
             } else if (value instanceof z.ZodString) {
-                fieldSchema = { 
-                    type: "string", 
-                    description: (value as any).description 
+                fieldSchema = {
+                    type: "string",
+                    description: (value as any).description
                 };
             } else if (value instanceof z.ZodBoolean) {
-                fieldSchema = { 
-                    type: "boolean", 
-                    description: (value as any).description 
+                fieldSchema = {
+                    type: "boolean",
+                    description: (value as any).description
                 };
             } else if (value instanceof z.ZodEnum) {
-                fieldSchema = { 
+                fieldSchema = {
                     type: "string",
                     enum: (value as any)._def?.values || [],
-                    description: (value as any).description 
+                    description: (value as any).description
                 };
             } else if (value instanceof z.ZodOptional) {
                 const innerType = (value as any)._def?.innerType;
                 if (innerType instanceof z.ZodNumber) {
-                    fieldSchema = { 
-                        type: "number", 
-                        description: (innerType as any).description 
+                    fieldSchema = {
+                        type: "number",
+                        description: (innerType as any).description
                     };
                     try {
                         const checks = (innerType as any)._def?.checks || [];
@@ -59,20 +59,20 @@ export function zodToJsonSchema(schema: z.ZodType): any {
                         // Ignore
                     }
                 } else if (innerType instanceof z.ZodString) {
-                    fieldSchema = { 
-                        type: "string", 
-                        description: (innerType as any).description 
+                    fieldSchema = {
+                        type: "string",
+                        description: (innerType as any).description
                     };
                 } else if (innerType instanceof z.ZodBoolean) {
-                    fieldSchema = { 
-                        type: "boolean", 
-                        description: (innerType as any).description 
+                    fieldSchema = {
+                        type: "boolean",
+                        description: (innerType as any).description
                     };
                 } else if (innerType instanceof z.ZodEnum) {
-                    fieldSchema = { 
+                    fieldSchema = {
                         type: "string",
                         enum: (innerType as any)._def?.values || [],
-                        description: (innerType as any).description 
+                        description: (innerType as any).description
                     };
                 }
                 properties[key] = fieldSchema;
@@ -149,8 +149,17 @@ export const alertsSchema = z.object({
 
 export const rotateApiKeySchema = z.object({});
 
+export const loginWithApiKeySchema = z.object({
+    api_key: z.string().min(8).describe("Your existing KirpyV3 API key (e.g., 'kirpy_xxxxxx')"),
+});
+
 // Tool definitions array
 export const toolDefinitions = [
+    {
+        name: "login_with_api_key",
+        description: "Already have an API key? Use this to login and restore your identity without re-registering. This unlocks all tools.",
+        inputSchema: zodToJsonSchema(loginWithApiKeySchema),
+    },
     {
         name: "get_registration_options",
         description: "CALL THIS FIRST: Get all available options for bot registration (personas, trading styles, risk strategies, etc.)",
@@ -210,5 +219,10 @@ export const toolDefinitions = [
         name: "rotate_api_key",
         description: "🔒 Security: Rotate your API key. Invalidates old key and generates a new one. Use if key is compromised or for regular security maintenance.",
         inputSchema: zodToJsonSchema(rotateApiKeySchema),
+    },
+    {
+        name: "get_agent_activity",
+        description: "📋 Get a full timeline of your bot's last 24 hours: arena chat posts, positions opened/closed, and triggered alerts — all in one feed.",
+        inputSchema: zodToJsonSchema(z.object({})),
     }
 ];

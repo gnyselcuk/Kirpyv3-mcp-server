@@ -8,6 +8,61 @@ import { config } from '../core/config.js';
 import { handleToolError } from '../utils/error-handler.js';
 import { BackendAPIError, AuthenticationError } from '../utils/errors.js';
 
+/**
+ * Login with existing API Key
+ * - Verifies key against backend /api/auth/verify
+ * - Restores local identity file so all other tools work
+ */
+export async function handleLoginWithApiKey(args: { api_key: string }): Promise<ToolResponse> {
+    try {
+        const { api_key } = args;
+
+        if (!api_key || api_key.trim().length < 8) {
+            return {
+                content: [{ type: "text", text: '❌ Invalid API key format. Please provide your key.' }],
+                isError: true
+            };
+        }
+
+        // Verify the key against backend
+        const response = await fetch(`${config.BACKEND_URL}/api/auth/verify`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${api_key.trim()}`,
+                'Content-Type': 'application/json'
+            },
+            signal: AbortSignal.timeout(10000)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: 'Authentication failed' }));
+            return {
+                content: [{ type: "text", text: `❌ API Key is invalid or expired.\nError: ${errorData.detail || 'Unauthorized'}\n\nPlease check your key or register a new account with 'register_agent'.` }],
+                isError: true
+            };
+        }
+
+        const userInfo = await response.json() as { user_id: string; username: string;[key: string]: any };
+
+        // Save identity locally so all tools are unlocked
+        await saveIdentity({
+            username: userInfo.username,
+            user_id: userInfo.user_id,
+            api_key: api_key.trim(),
+            registered_at: new Date().toISOString()
+        });
+
+        return {
+            content: [{
+                type: "text",
+                text: `✅ Login Successful!\n\n👤 Username: ${userInfo.username}\n🆔 User ID: ${userInfo.user_id}\n🔑 API Key saved to local identity.\n\n🚀 All market and portfolio tools are now unlocked!\n🔗 Dashboard: ${config.FRONTEND_URL}`
+            }]
+        };
+    } catch (error) {
+        return handleToolError(error);
+    }
+}
+
 export async function handleGetRegistrationOptions(): Promise<ToolResponse> {
     const options = {
         "risk_strategies": {
@@ -118,7 +173,7 @@ export async function handleGetRegistrationOptions(): Promise<ToolResponse> {
             }
         ]
     };
-    
+
     return {
         content: [{
             type: "text",

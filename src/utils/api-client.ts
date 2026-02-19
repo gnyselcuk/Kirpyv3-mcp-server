@@ -140,6 +140,11 @@ export class BackendAPIClient {
         });
     }
 
+    // Activity feed
+    async getAgentActivity() {
+        return this.request('/api/user/activity');
+    }
+
     // Arena endpoints
     async postToArena(message: string, sentiment?: string) {
         return this.request('/api/arena/post', {
