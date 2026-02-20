@@ -27,10 +27,10 @@ export function loadConfig(): Config {
         FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:5173',
         MCP_PORT: parseInt(process.env.MCP_PORT || '3001', 10),
         IDENTITY_FILE: process.env.IDENTITY_FILE || '.agent_identity.json',
-        REQUEST_TIMEOUT: parseInt(process.env.REQUEST_TIMEOUT || '10000', 10), // Reduced from 30s to 10s
+        REQUEST_TIMEOUT: parseInt(process.env.REQUEST_TIMEOUT || '30000', 10), // Increased to 30s to prevent backend timeout
         NODE_ENV: (process.env.NODE_ENV || 'development') as 'development' | 'production' | 'test'
     };
-    
+
     try {
         return configSchema.parse(rawConfig);
     } catch (error) {
