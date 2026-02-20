@@ -16,10 +16,15 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { config } from './core/config.js';
 import { toolDefinitions } from './tools/definitions.js';
 import { handleToolCall } from './handlers/index.js';
 import { createSecurityLogger } from './utils/security-logger.js';
+
+const SKILL_FILE = path.join(process.cwd(), 'SKILL.md');
 
 const app = express();
 const securityLogger = createSecurityLogger();
@@ -139,18 +144,59 @@ app.use('/mcp', generalLimiter);
 
 // Health check (no rate limit)
 app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'ok', 
-        server: 'kirpyv3-mcp-http', 
+    res.json({
+        status: 'ok',
+        server: 'kirpyv3-mcp-http',
         version: '1.0.0',
         environment: config.NODE_ENV,
-        timestamp: new Date().toISOString() 
+        timestamp: new Date().toISOString()
     });
 });
 
 // List tools (for MCP discovery)
 app.get('/tools', (req, res) => {
     res.json({ tools: toolDefinitions });
+});
+
+// Serve SKILL.md — human + agent readable guide
+// Agents can fetch: GET /skill (JSON) or GET /skill.md (raw markdown)
+app.get('/skill', (req, res) => {
+    try {
+        const content = fs.existsSync(SKILL_FILE)
+            ? fs.readFileSync(SKILL_FILE, 'utf-8')
+            : '# SKILL.md not found';
+
+        const accept = req.headers['accept'] || '';
+        if (accept.includes('application/json')) {
+            // Return as JSON for programmatic agents
+            res.json({
+                name: 'kirpyv3-trading-agent',
+                server_url: 'https://mcp-kirpyv3.yugosoft.net',
+                transport: 'http',
+                skill_guide_url: 'https://mcp-kirpyv3.yugosoft.net/skill.md',
+                tools_url: 'https://mcp-kirpyv3.yugosoft.net/tools',
+                content
+            });
+        } else {
+            // Return raw markdown for humans / markdown-aware agents
+            res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+            res.send(content);
+        }
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to load skill guide' });
+    }
+});
+
+app.get('/skill.md', (req, res) => {
+    try {
+        const content = fs.existsSync(SKILL_FILE)
+            ? fs.readFileSync(SKILL_FILE, 'utf-8')
+            : '# SKILL.md not found';
+        res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+        res.send(content);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to load skill guide' });
+    }
 });
 
 // MCP Protocol: Initialize
@@ -164,10 +210,13 @@ app.post('/mcp/initialize', (req, res) => {
     res.json({
         protocolVersion: "2024-11-05",
         capabilities: { tools: {} },
-        serverInfo: { 
-            name: "kirpyv3-mcp-http", 
+        serverInfo: {
+            name: "kirpyv3-mcp-http",
             version: "1.0.0",
-            environment: config.NODE_ENV
+            environment: config.NODE_ENV,
+            skill_url: "https://mcp-kirpyv3.yugosoft.net/skill",
+            skill_md_url: "https://mcp-kirpyv3.yugosoft.net/skill.md",
+            dashboard_url: config.FRONTEND_URL
         }
     });
 });
@@ -182,7 +231,7 @@ app.post('/mcp/tools/list', (req, res) => {
 // MCP Protocol: Call tool (with rate limiting)
 app.post('/mcp/tools/call', toolCallLimiter, async (req, res) => {
     const { name, arguments: args } = req.body;
-    
+
     // Log tool call attempt
     securityLogger.info({
         event: 'tool_call',
@@ -190,10 +239,10 @@ app.post('/mcp/tools/call', toolCallLimiter, async (req, res) => {
         ip: req.ip,
         timestamp: new Date().toISOString()
     });
-    
+
     try {
         const result = await handleToolCall(name, args || {});
-        
+
         // Log successful tool call
         if (!result.isError) {
             securityLogger.info({
@@ -208,7 +257,7 @@ app.post('/mcp/tools/call', toolCallLimiter, async (req, res) => {
                 timestamp: new Date().toISOString()
             });
         }
-        
+
         res.json(result);
     } catch (error) {
         securityLogger.error({

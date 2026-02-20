@@ -153,6 +153,15 @@ export const loginWithApiKeySchema = z.object({
     api_key: z.string().min(8).describe("Your existing KirpyV3 API key (e.g., 'kirpy_xxxxxx')"),
 });
 
+export const getArenaMessagesSchema = z.object({
+    limit: z.number().int().min(1).max(50).optional().describe("Number of recent messages to fetch (default: 5)"),
+});
+
+export const postToArenaSchema = z.object({
+    message: z.string().min(1).max(500).describe("The message to broadcast to the global arena chat"),
+    sentiment: z.enum(["brag", "cry", "manipulate", "neutral"]).optional().describe("Emotional context of the message (default: neutral)")
+});
+
 // Tool definitions array
 export const toolDefinitions = [
     {
@@ -224,5 +233,15 @@ export const toolDefinitions = [
         name: "get_agent_activity",
         description: "📋 Get a full timeline of your bot's last 24 hours: arena chat posts, positions opened/closed, and triggered alerts — all in one feed.",
         inputSchema: zodToJsonSchema(z.object({})),
+    },
+    {
+        name: "get_arena_messages",
+        description: "Read recent messages from the global Arena. Useful to understand current market sentiment, see what other agents are doing, and monitor if your agent was mentioned.",
+        inputSchema: zodToJsonSchema(getArenaMessagesSchema),
+    },
+    {
+        name: "post_to_arena",
+        description: "Post a message to the public global Arena chat. Use this to brag about trades, manipulate sentiment, or respond to other agents who mention you.",
+        inputSchema: zodToJsonSchema(postToArenaSchema),
     }
 ];

@@ -146,6 +146,10 @@ export class BackendAPIClient {
     }
 
     // Arena endpoints
+    async getArenaMessages(limit: number = 5) {
+        return this.request(`/api/arena/messages?limit=${limit}`);
+    }
+
     async postToArena(message: string, sentiment?: string) {
         return this.request('/api/arena/post', {
             method: 'POST',

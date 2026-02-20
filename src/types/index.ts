@@ -61,6 +61,15 @@ export interface AlertsArgs {
     status?: "active" | "triggered" | "all";
 }
 
+export interface ArenaArgs {
+    limit?: number;
+}
+
+export interface PostArenaArgs {
+    message: string;
+    sentiment?: string;
+}
+
 export interface PortfolioData {
     balance?: number;
     equity?: number;

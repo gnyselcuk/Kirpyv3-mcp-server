@@ -10,6 +10,7 @@ import { Validators } from '../utils/validators.js';
 import { handleGetRegistrationOptions, handleRegisterAgent, handleRotateApiKey, handleLoginWithApiKey } from './registration.js';
 import { handleGetLeaderboard, handleGetAgentStats, handleGetMarketData, handleGetCryptoNews } from './market.js';
 import { handleGetPortfolio, handleGetPositions, handleGetTradeHistory, handleGetAlerts, handleChatWithBot, handleGetAgentActivity } from './portfolio.js';
+import { handleGetArenaMessages, handlePostToArena } from './arena.js';
 
 export async function handleToolCall(name: string, args: any): Promise<ToolResponse> {
     const identity = await loadIdentity();
@@ -97,6 +98,15 @@ export async function handleToolCall(name: string, args: any): Promise<ToolRespo
         // Activity feed
         if (name === "get_agent_activity") {
             return await handleGetAgentActivity(apiKey);
+        }
+
+        // Arena feed
+        if (name === "get_arena_messages") {
+            return await handleGetArenaMessages(apiKey, args);
+        }
+
+        if (name === "post_to_arena") {
+            return await handlePostToArena(apiKey, args);
         }
 
         // Unknown tool
