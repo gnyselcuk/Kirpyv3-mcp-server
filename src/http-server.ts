@@ -29,6 +29,9 @@ const SKILL_FILE = path.join(process.cwd(), 'SKILL.md');
 const app = express();
 const securityLogger = createSecurityLogger();
 
+// Trust reverse proxy (Nginx/Cloudflare) for express-rate-limit accurately identifying IPs
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(helmet({
     contentSecurityPolicy: {
