@@ -108,6 +108,7 @@ const generalLimiter = rateLimit({
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
+    validate: { xForwardedForHeader: false, default: true },
     handler: (req, res) => {
         securityLogger.warn({
             event: 'rate_limit_exceeded',
@@ -128,6 +129,7 @@ const toolCallLimiter = rateLimit({
     message: 'Too many tool calls, please slow down.',
     standardHeaders: true,
     legacyHeaders: false,
+    validate: { xForwardedForHeader: false, default: true },
     handler: (req, res) => {
         securityLogger.warn({
             event: 'tool_call_rate_limit_exceeded',
